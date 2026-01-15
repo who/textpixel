@@ -54,6 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Debounce timer for real-time preview
     let previewTimer = null;
 
+    // GPU acceleration state
+    let useGPU = WebGLEncoder.isAvailable();
+    let gpuCanvas = null;
+    if (useGPU) {
+        gpuCanvas = document.createElement('canvas');
+        gpuCanvas.style.display = 'none';
+        document.body.appendChild(gpuCanvas);
+    }
+
     // Handle file upload (supports TXT, PDF, EPUB, DOCX)
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -288,6 +297,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const charCount = text.length;
         const size = Math.ceil(Math.sqrt(charCount));
 
+        // Try GPU-accelerated encoding first
+        if (useGPU && gpuCanvas) {
+            const success = WebGLEncoder.encode(gpuCanvas, text, ColorMap.charToColor);
+            if (success) {
+                // Copy from WebGL canvas to display canvas
+                canvas.width = size;
+                canvas.height = size;
+                ctx.drawImage(gpuCanvas, 0, 0);
+                downloadBtn.disabled = false;
+                saveGalleryBtn.disabled = false;
+                return;
+            }
+            // Fall through to CPU if GPU fails
+        }
+
+        // CPU fallback
         canvas.width = size;
         canvas.height = size;
 
