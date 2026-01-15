@@ -57,10 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // GPU acceleration state
     let useGPU = WebGLEncoder.isAvailable();
     let gpuCanvas = null;
+    let gpuDecodeCanvas = null;
     if (useGPU) {
         gpuCanvas = document.createElement('canvas');
         gpuCanvas.style.display = 'none';
         document.body.appendChild(gpuCanvas);
+        gpuDecodeCanvas = document.createElement('canvas');
+        gpuDecodeCanvas.style.display = 'none';
+        document.body.appendChild(gpuDecodeCanvas);
     }
 
     // Handle file upload (supports TXT, PDF, EPUB, DOCX)
@@ -363,62 +367,78 @@ document.addEventListener('DOMContentLoaded', () => {
         decodeCanvas.height = img.height;
         decodeCtx.drawImage(img, 0, 0);
 
-        const imageData = decodeCtx.getImageData(0, 0, img.width, img.height);
-        const data = imageData.data;
         const totalPixels = img.width * img.height;
-
-        // Show progress bar
-        decodeProgress.classList.add('active');
-        decodeProgressBar.style.width = '0%';
-        decodeProgressText.textContent = '0%';
         decodeStats.innerHTML = '';
         decodeOutput.value = '';
 
-        const chars = [];
-        let exactMatches = 0;
+        let text, exactMatches;
 
-        // Process in chunks to allow UI updates
-        const chunkSize = 10000;
-        let processed = 0;
-
-        function updateProgress(percent) {
-            decodeProgressBar.style.width = percent + '%';
-            decodeProgressText.textContent = Math.round(percent) + '%';
+        // Try GPU-accelerated decoding first
+        if (useGPU && gpuDecodeCanvas) {
+            const result = WebGLDecoder.decode(gpuDecodeCanvas, decodeCanvas, ColorMap.charToColor);
+            if (result) {
+                text = result.text;
+                exactMatches = result.exactMatches;
+            }
         }
 
-        await new Promise((resolve) => {
-            function processChunk() {
-                const end = Math.min(processed + chunkSize, totalPixels);
+        // Fall back to CPU if GPU not available or failed
+        if (text === undefined) {
+            const imageData = decodeCtx.getImageData(0, 0, img.width, img.height);
+            const data = imageData.data;
 
-                for (let i = processed; i < end; i++) {
-                    const idx = i * 4;
-                    const r = data[idx];
-                    const g = data[idx + 1];
-                    const b = data[idx + 2];
+            // Show progress bar for CPU decode
+            decodeProgress.classList.add('active');
+            decodeProgressBar.style.width = '0%';
+            decodeProgressText.textContent = '0%';
 
-                    const result = ColorMap.colorToChar(r, g, b);
-                    chars.push(result.char);
-                    if (result.exact) exactMatches++;
-                }
+            const chars = [];
+            exactMatches = 0;
 
-                processed = end;
-                const percent = (processed / totalPixels) * 100;
-                updateProgress(percent);
+            // Process in chunks to allow UI updates
+            const chunkSize = 10000;
+            let processed = 0;
 
-                if (processed < totalPixels) {
-                    setTimeout(processChunk, 0);
-                } else {
-                    resolve();
-                }
+            function updateProgress(percent) {
+                decodeProgressBar.style.width = percent + '%';
+                decodeProgressText.textContent = Math.round(percent) + '%';
             }
 
-            processChunk();
-        });
+            await new Promise((resolve) => {
+                function processChunk() {
+                    const end = Math.min(processed + chunkSize, totalPixels);
 
-        // Hide progress bar
-        decodeProgress.classList.remove('active');
+                    for (let i = processed; i < end; i++) {
+                        const idx = i * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
 
-        const text = chars.join('');
+                        const result = ColorMap.colorToChar(r, g, b);
+                        chars.push(result.char);
+                        if (result.exact) exactMatches++;
+                    }
+
+                    processed = end;
+                    const percent = (processed / totalPixels) * 100;
+                    updateProgress(percent);
+
+                    if (processed < totalPixels) {
+                        setTimeout(processChunk, 0);
+                    } else {
+                        resolve();
+                    }
+                }
+
+                processChunk();
+            });
+
+            // Hide progress bar
+            decodeProgress.classList.remove('active');
+
+            text = chars.join('');
+        }
+
         // Trim trailing padding (spaces from square padding)
         const trimmedText = text.replace(/\s+$/, '');
 
