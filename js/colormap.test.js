@@ -5,12 +5,10 @@ import { describe, it, expect } from 'vitest';
 const ColorMap = await import('./colormap.js').then(m => m.default || m);
 
 describe('ColorMap roundtrip tests', () => {
-    // Algorithms without known color collisions
-    const losslessAlgorithms = ['rgb', 'semantic'];
-    // Algorithms with known color collisions (hue wrapping issues)
-    const lossyAlgorithms = ['hsl', 'frequency'];
+    // Test all algorithms
+    const algorithms = ['hsl', 'rgb', 'semantic', 'frequency'];
 
-    losslessAlgorithms.forEach(algorithm => {
+    algorithms.forEach(algorithm => {
         describe(`${algorithm} algorithm`, () => {
             it('should roundtrip a simple text', () => {
                 ColorMap.setAlgorithm(algorithm);
@@ -74,7 +72,7 @@ describe('ColorMap roundtrip tests', () => {
     });
 
     describe('color uniqueness', () => {
-        losslessAlgorithms.forEach(algorithm => {
+        algorithms.forEach(algorithm => {
             it(`${algorithm}: each character should have a unique color`, () => {
                 ColorMap.setAlgorithm(algorithm);
 
@@ -96,31 +94,6 @@ describe('ColorMap roundtrip tests', () => {
                 }
 
                 expect(colorToChar.size).toBe(95); // 95 printable ASCII chars
-            });
-        });
-
-        // Document known issues with lossy algorithms
-        lossyAlgorithms.forEach(algorithm => {
-            it(`${algorithm}: has known color collisions (documented issue)`, () => {
-                ColorMap.setAlgorithm(algorithm);
-
-                const colorToChar = new Map();
-                let collisionCount = 0;
-
-                for (let code = 32; code <= 126; code++) {
-                    const char = String.fromCharCode(code);
-                    const color = ColorMap.charToColor(char);
-                    const colorKey = `${color.r},${color.g},${color.b}`;
-
-                    if (colorToChar.has(colorKey)) {
-                        collisionCount++;
-                    } else {
-                        colorToChar.set(colorKey, { char, code });
-                    }
-                }
-
-                // Document that these algorithms have collisions
-                expect(collisionCount).toBeGreaterThan(0);
             });
         });
     });
