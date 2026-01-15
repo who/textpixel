@@ -268,6 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         decodeStats.innerHTML = `${trimmedText.length.toLocaleString()} characters decoded from ${img.width}×${img.height} image <span class="confidence ${confidenceClass}">${confidenceLabel} (${confidence.toFixed(1)}%)</span>`;
     }
 
+    // Algorithm description element
+    const algorithmDescription = document.getElementById('algorithm-description');
+
     // Populate algorithm selector
     function initAlgorithmSelector() {
         const algorithms = ColorMap.getAlgorithms();
@@ -275,14 +278,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const option = document.createElement('option');
             option.value = alg.id;
             option.textContent = alg.name;
-            option.title = alg.description;
+            option.dataset.description = alg.description;
             algorithmSelect.appendChild(option);
         });
+        updateAlgorithmDescription();
+    }
+
+    function updateAlgorithmDescription() {
+        const selected = algorithmSelect.options[algorithmSelect.selectedIndex];
+        if (selected && selected.dataset.description) {
+            algorithmDescription.textContent = selected.dataset.description;
+        }
     }
 
     // Handle algorithm change
     algorithmSelect.addEventListener('change', () => {
         ColorMap.setAlgorithm(algorithmSelect.value);
+        updateAlgorithmDescription();
         schedulePreview();
     });
 

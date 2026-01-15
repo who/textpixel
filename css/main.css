@@ -138,6 +138,7 @@ h2 {
 .algorithm-selector {
     margin-top: 16px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
 }
@@ -160,6 +161,14 @@ h2 {
 .algorithm-selector select:focus {
     outline: none;
     border-color: #667eea;
+}
+
+.algorithm-description {
+    width: 100%;
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    font-style: italic;
 }
 
 .stats {
