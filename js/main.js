@@ -44,6 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let startY = 0;
     let currentText = '';
 
+    // Touch gesture state
+    let lastTouchDistance = 0;
+    let touchStartTime = 0;
+    let touchStartPos = { x: 0, y: 0 };
+    const TAP_THRESHOLD = 200; // ms
+    const TAP_MOVE_THRESHOLD = 10; // px
+
     // Debounce timer for real-time preview
     let previewTimer = null;
 
@@ -143,6 +150,103 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.addEventListener('mouseleave', () => {
         tooltip.classList.remove('visible');
     });
+
+    // Touch event helpers
+    function getTouchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function showTooltipAtPosition(clientX, clientY) {
+        if (!currentText || canvas.width === 0) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = Math.floor((clientX - rect.left) * scaleX);
+        const y = Math.floor((clientY - rect.top) * scaleY);
+
+        if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+            const idx = y * canvas.width + x;
+            if (idx < currentText.length) {
+                const char = currentText[idx];
+                const code = char.charCodeAt(0);
+                const displayChar = code === 32 ? 'Space' : char;
+                tooltip.textContent = `"${displayChar}" (ASCII ${code})`;
+                tooltip.style.left = (clientX - canvasWrapper.getBoundingClientRect().left + 10) + 'px';
+                tooltip.style.top = (clientY - canvasWrapper.getBoundingClientRect().top - 30) + 'px';
+                tooltip.classList.add('visible');
+            } else {
+                tooltip.classList.remove('visible');
+            }
+        }
+    }
+
+    // Touch start - handle pan and pinch initialization
+    canvasWrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            // Single finger - prepare for pan or tap
+            isPanning = true;
+            startX = e.touches[0].clientX - panX;
+            startY = e.touches[0].clientY - panY;
+            touchStartTime = Date.now();
+            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) {
+            // Two fingers - prepare for pinch zoom
+            isPanning = false;
+            lastTouchDistance = getTouchDistance(e.touches);
+        }
+    }, { passive: true });
+
+    // Touch move - handle pan and pinch zoom
+    canvasWrapper.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+
+        if (e.touches.length === 1 && isPanning) {
+            // Single finger pan
+            panX = e.touches[0].clientX - startX;
+            panY = e.touches[0].clientY - startY;
+            updateCanvasTransform();
+        } else if (e.touches.length === 2) {
+            // Pinch zoom
+            const currentDistance = getTouchDistance(e.touches);
+            if (lastTouchDistance > 0) {
+                const scale = currentDistance / lastTouchDistance;
+                setZoom(zoom * scale);
+            }
+            lastTouchDistance = currentDistance;
+        }
+    }, { passive: false });
+
+    // Touch end - handle tap detection and cleanup
+    canvasWrapper.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+            // All fingers lifted
+            const touchDuration = Date.now() - touchStartTime;
+            const touchEndPos = e.changedTouches[0];
+            const moveDistance = Math.sqrt(
+                Math.pow(touchEndPos.clientX - touchStartPos.x, 2) +
+                Math.pow(touchEndPos.clientY - touchStartPos.y, 2)
+            );
+
+            // Detect tap (short duration, minimal movement)
+            if (touchDuration < TAP_THRESHOLD && moveDistance < TAP_MOVE_THRESHOLD) {
+                showTooltipAtPosition(touchEndPos.clientX, touchEndPos.clientY);
+                // Hide tooltip after 2 seconds
+                setTimeout(() => tooltip.classList.remove('visible'), 2000);
+            }
+
+            isPanning = false;
+            lastTouchDistance = 0;
+        } else if (e.touches.length === 1) {
+            // One finger still down after lifting another
+            isPanning = true;
+            startX = e.touches[0].clientX - panX;
+            startY = e.touches[0].clientY - panY;
+            lastTouchDistance = 0;
+        }
+    }, { passive: true });
 
     function setZoom(newZoom) {
         zoom = Math.max(0.1, Math.min(20, newZoom));
