@@ -316,6 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     }
 
+    // Decode progress elements
+    const decodeProgress = document.getElementById('decode-progress');
+    const decodeProgressBar = document.getElementById('decode-progress-bar');
+    const decodeProgressText = document.getElementById('decode-progress-text');
+
     // Handle decode file upload
     decodeFileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -328,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function decodeImage(img) {
+    async function decodeImage(img) {
         decodeCanvas.width = img.width;
         decodeCanvas.height = img.height;
         decodeCtx.drawImage(img, 0, 0);
@@ -337,20 +342,58 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = imageData.data;
         const totalPixels = img.width * img.height;
 
-        let text = '';
+        // Show progress bar
+        decodeProgress.classList.add('active');
+        decodeProgressBar.style.width = '0%';
+        decodeProgressText.textContent = '0%';
+        decodeStats.innerHTML = '';
+        decodeOutput.value = '';
+
+        const chars = [];
         let exactMatches = 0;
 
-        for (let i = 0; i < totalPixels; i++) {
-            const idx = i * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
+        // Process in chunks to allow UI updates
+        const chunkSize = 10000;
+        let processed = 0;
 
-            const result = ColorMap.colorToChar(r, g, b);
-            text += result.char;
-            if (result.exact) exactMatches++;
+        function updateProgress(percent) {
+            decodeProgressBar.style.width = percent + '%';
+            decodeProgressText.textContent = Math.round(percent) + '%';
         }
 
+        await new Promise((resolve) => {
+            function processChunk() {
+                const end = Math.min(processed + chunkSize, totalPixels);
+
+                for (let i = processed; i < end; i++) {
+                    const idx = i * 4;
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+
+                    const result = ColorMap.colorToChar(r, g, b);
+                    chars.push(result.char);
+                    if (result.exact) exactMatches++;
+                }
+
+                processed = end;
+                const percent = (processed / totalPixels) * 100;
+                updateProgress(percent);
+
+                if (processed < totalPixels) {
+                    setTimeout(processChunk, 0);
+                } else {
+                    resolve();
+                }
+            }
+
+            processChunk();
+        });
+
+        // Hide progress bar
+        decodeProgress.classList.remove('active');
+
+        const text = chars.join('');
         // Trim trailing padding (spaces from square padding)
         const trimmedText = text.replace(/\s+$/, '');
 
