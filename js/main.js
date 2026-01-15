@@ -41,17 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Debounce timer for real-time preview
     let previewTimer = null;
 
-    // Handle file upload
-    fileInput.addEventListener('change', (e) => {
+    // Handle file upload (supports TXT, PDF, EPUB, DOCX)
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                textInput.value = event.target.result;
+            try {
+                stats.textContent = 'Parsing file...';
+                const text = await FileParser.parseFile(file);
+                textInput.value = text;
                 updateStats();
                 schedulePreview();
-            };
-            reader.readAsText(file);
+            } catch (error) {
+                stats.textContent = `Error: ${error.message}`;
+                console.error('File parsing error:', error);
+            }
         }
     });
 
