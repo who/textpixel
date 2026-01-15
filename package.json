@@ -1,0 +1,25 @@
+{
+  "name": "textpixel",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/who/textpixel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/who/textpixel/issues"
+  },
+  "homepage": "https://github.com/who/textpixel#readme",
+  "devDependencies": {
+    "vitest": "^4.0.17"
+  }
+}
