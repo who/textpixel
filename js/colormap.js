@@ -20,7 +20,8 @@ const ColorMap = (function() {
             charToColor: function(char) {
                 const code = char.charCodeAt(0);
                 const clampedCode = Math.max(MIN_ASCII, Math.min(MAX_ASCII, code));
-                const hue = ((clampedCode - MIN_ASCII) / 94) * 360;
+                // Use CHAR_COUNT (95) to avoid hue 360° wrapping to 0°
+                const hue = ((clampedCode - MIN_ASCII) / CHAR_COUNT) * 360;
                 return hslToRgb(hue, 70, 50);
             }
         },
@@ -85,11 +86,18 @@ const ColorMap = (function() {
 
                 let idx = frequencyOrder.indexOf(charStr);
                 if (idx === -1) {
-                    // Fall back to position in ASCII range for unlisted chars
-                    idx = frequencyOrder.length + (clampedCode - MIN_ASCII);
+                    // Assign unique indices to unlisted chars after frequencyOrder
+                    let offset = 0;
+                    for (let c = MIN_ASCII; c < clampedCode; c++) {
+                        if (frequencyOrder.indexOf(String.fromCharCode(c)) === -1) {
+                            offset++;
+                        }
+                    }
+                    idx = frequencyOrder.length + offset;
                 }
 
-                const hue = (idx / (frequencyOrder.length + 20)) * 360;
+                // Use CHAR_COUNT to ensure hue stays in [0, 360) range
+                const hue = (idx / CHAR_COUNT) * 360;
                 return hslToRgb(hue, 75, 50);
             }
         }
