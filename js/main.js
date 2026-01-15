@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const decodeStats = document.getElementById('decode-stats');
     const decodeCtx = decodeCanvas.getContext('2d');
 
+    // Gallery elements
+    const saveGalleryBtn = document.getElementById('save-gallery-btn');
+    const galleryGrid = document.getElementById('gallery-grid');
+    const galleryCount = document.getElementById('gallery-count');
+    const clearGalleryBtn = document.getElementById('clear-gallery-btn');
+
     // Zoom/pan state
     let zoom = 1;
     let panX = 0;
@@ -196,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ctx.putImageData(imageData, 0, 0);
         downloadBtn.disabled = false;
+        saveGalleryBtn.disabled = false;
     }
 
     function downloadImage() {
@@ -279,7 +286,102 @@ document.addEventListener('DOMContentLoaded', () => {
         schedulePreview();
     });
 
+    // Gallery functions
+    async function saveToGallery() {
+        if (canvas.width === 0) return;
+
+        try {
+            const imageData = canvas.toDataURL('image/png');
+            const preview = currentText.substring(0, 50) + (currentText.length > 50 ? '...' : '');
+
+            await Gallery.saveImage(imageData, {
+                charCount: currentText.length,
+                dimensions: `${canvas.width}x${canvas.height}`,
+                algorithm: ColorMap.getAlgorithm(),
+                preview: preview
+            });
+
+            refreshGallery();
+        } catch (error) {
+            console.error('Failed to save to gallery:', error);
+        }
+    }
+
+    async function refreshGallery() {
+        try {
+            const images = await Gallery.getImages();
+            const count = images.length;
+
+            galleryCount.textContent = count > 0 ? `(${count})` : '';
+
+            if (count === 0) {
+                galleryGrid.innerHTML = '<div class="gallery-empty">No images saved yet</div>';
+                return;
+            }
+
+            galleryGrid.innerHTML = '';
+            images.forEach(item => {
+                const el = createGalleryItem(item);
+                galleryGrid.appendChild(el);
+            });
+        } catch (error) {
+            console.error('Failed to load gallery:', error);
+            galleryGrid.innerHTML = '<div class="gallery-empty">Failed to load gallery</div>';
+        }
+    }
+
+    function createGalleryItem(item) {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+
+        const img = document.createElement('img');
+        img.src = item.imageData;
+        img.alt = 'Generated image';
+
+        const meta = document.createElement('div');
+        meta.className = 'gallery-item-meta';
+        meta.innerHTML = `
+            <span class="chars">${item.charCount.toLocaleString()} chars</span>
+            <span class="time">${Gallery.formatTimestamp(item.timestamp)}</span>
+        `;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'gallery-item-delete';
+        deleteBtn.textContent = 'x';
+        deleteBtn.onclick = async (e) => {
+            e.stopPropagation();
+            await Gallery.deleteImage(item.id);
+            refreshGallery();
+        };
+
+        div.appendChild(img);
+        div.appendChild(meta);
+        div.appendChild(deleteBtn);
+
+        // Click to download
+        div.onclick = () => {
+            const link = document.createElement('a');
+            link.download = `textpixel-${item.id}.png`;
+            link.href = item.imageData;
+            link.click();
+        };
+
+        return div;
+    }
+
+    async function clearGallery() {
+        if (confirm('Delete all saved images?')) {
+            await Gallery.clearAll();
+            refreshGallery();
+        }
+    }
+
+    // Gallery event listeners
+    saveGalleryBtn.addEventListener('click', saveToGallery);
+    clearGalleryBtn.addEventListener('click', clearGallery);
+
     // Initialize
     initAlgorithmSelector();
     updateStats();
+    refreshGallery();
 });

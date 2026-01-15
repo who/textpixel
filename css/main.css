@@ -233,6 +233,94 @@ h2 {
     gap: 12px;
 }
 
+.gallery-section {
+    grid-column: 1 / -1;
+}
+
+.gallery-section h2 span {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px;
+    min-height: 100px;
+}
+
+.gallery-item {
+    background: #0f0f23;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.gallery-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    image-rendering: pixelated;
+    border-radius: 4px;
+    background: #000;
+}
+
+.gallery-item-meta {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #888;
+}
+
+.gallery-item-meta .chars {
+    font-weight: 600;
+    color: #aaa;
+}
+
+.gallery-item-meta .time {
+    display: block;
+    margin-top: 2px;
+}
+
+.gallery-item-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.8);
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.gallery-item:hover .gallery-item-delete {
+    opacity: 1;
+}
+
+.gallery-controls {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+}
+
+.gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
 .decode-section {
     grid-column: 1 / -1;
 }

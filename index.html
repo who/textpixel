@@ -49,6 +49,15 @@
                 </div>
                 <div class="output-controls">
                     <button id="download-btn" class="btn btn-secondary" disabled>Download PNG</button>
+                    <button id="save-gallery-btn" class="btn btn-secondary" disabled>Save to Gallery</button>
+                </div>
+            </section>
+
+            <section class="gallery-section">
+                <h2>Gallery <span id="gallery-count"></span></h2>
+                <div class="gallery-grid" id="gallery-grid"></div>
+                <div class="gallery-controls">
+                    <button id="clear-gallery-btn" class="btn btn-small">Clear All</button>
                 </div>
             </section>
 
@@ -77,6 +86,7 @@
 
     <script src="js/colormap.js"></script>
     <script src="js/fileparser.js"></script>
+    <script src="js/gallery.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
