@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextPixel - Text to Color Image Generator</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>TextPixel</h1>
+            <p class="tagline">Transform text into visual art</p>
+        </header>
+
+        <main class="main">
+            <section class="input-section">
+                <h2>Enter Text</h2>
+                <textarea id="text-input" placeholder="Paste or type your text here..."></textarea>
+                <div class="input-controls">
+                    <label class="file-upload">
+                        <input type="file" id="file-input" accept=".txt">
+                        <span>Upload TXT File</span>
+                    </label>
+                    <button id="generate-btn" class="btn btn-primary">Generate Image</button>
+                </div>
+                <div class="stats" id="stats"></div>
+            </section>
+
+            <section class="output-section">
+                <h2>Generated Image</h2>
+                <div class="canvas-container">
+                    <canvas id="output-canvas"></canvas>
+                </div>
+                <div class="output-controls">
+                    <button id="download-btn" class="btn btn-secondary" disabled>Download PNG</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>TextPixel - Each character becomes a pixel</p>
+        </footer>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
