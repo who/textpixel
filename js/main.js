@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomResetBtn = document.getElementById('zoom-reset-btn');
     const zoomLevelEl = document.getElementById('zoom-level');
 
+    // Algorithm selector
+    const algorithmSelect = document.getElementById('algorithm-select');
+
     // Decode elements
     const decodeFileInput = document.getElementById('decode-file-input');
     const decodeCanvas = document.getElementById('decode-canvas');
@@ -255,6 +258,25 @@ document.addEventListener('DOMContentLoaded', () => {
         decodeStats.innerHTML = `${trimmedText.length.toLocaleString()} characters decoded from ${img.width}×${img.height} image <span class="confidence ${confidenceClass}">${confidenceLabel} (${confidence.toFixed(1)}%)</span>`;
     }
 
+    // Populate algorithm selector
+    function initAlgorithmSelector() {
+        const algorithms = ColorMap.getAlgorithms();
+        algorithms.forEach(alg => {
+            const option = document.createElement('option');
+            option.value = alg.id;
+            option.textContent = alg.name;
+            option.title = alg.description;
+            algorithmSelect.appendChild(option);
+        });
+    }
+
+    // Handle algorithm change
+    algorithmSelect.addEventListener('change', () => {
+        ColorMap.setAlgorithm(algorithmSelect.value);
+        schedulePreview();
+    });
+
     // Initialize
+    initAlgorithmSelector();
     updateStats();
 });

@@ -5,11 +5,95 @@ const ColorMap = (function() {
     const MIN_ASCII = 32;
     const MAX_ASCII = 126;
     const CHAR_COUNT = MAX_ASCII - MIN_ASCII + 1; // 95 characters
-    const SATURATION = 70;
-    const LIGHTNESS = 50;
 
-    // Pre-computed lookup table for reverse mapping (RGB string -> char)
-    let reverseLookup = null;
+    // Current algorithm
+    let currentAlgorithm = 'hsl';
+
+    // Pre-computed lookup tables for reverse mapping (per algorithm)
+    const reverseLookups = {};
+
+    // Algorithm definitions
+    const algorithms = {
+        hsl: {
+            name: 'Distributed Hue (HSL)',
+            description: 'Maps characters across the color spectrum using HSL',
+            charToColor: function(char) {
+                const code = char.charCodeAt(0);
+                const clampedCode = Math.max(MIN_ASCII, Math.min(MAX_ASCII, code));
+                const hue = ((clampedCode - MIN_ASCII) / 94) * 360;
+                return hslToRgb(hue, 70, 50);
+            }
+        },
+        rgb: {
+            name: 'Direct RGB',
+            description: 'Maps ASCII directly to RGB channels',
+            charToColor: function(char) {
+                const code = char.charCodeAt(0);
+                const clampedCode = Math.max(MIN_ASCII, Math.min(MAX_ASCII, code));
+                const normalized = clampedCode - MIN_ASCII;
+                // Spread across RGB space
+                const r = (normalized * 2.7) % 256;
+                const g = (normalized * 7.3) % 256;
+                const b = (normalized * 13.1) % 256;
+                return {
+                    r: Math.round(r),
+                    g: Math.round(g),
+                    b: Math.round(b)
+                };
+            }
+        },
+        semantic: {
+            name: 'Semantic Grouping',
+            description: 'Similar characters get similar colors',
+            charToColor: function(char) {
+                const code = char.charCodeAt(0);
+                let hue, sat = 70, light = 50;
+
+                if (code >= 65 && code <= 90) {
+                    // Uppercase A-Z: warm reds/oranges
+                    hue = ((code - 65) / 26) * 60; // 0-60
+                    sat = 80;
+                } else if (code >= 97 && code <= 122) {
+                    // Lowercase a-z: cool blues/greens
+                    hue = 180 + ((code - 97) / 26) * 60; // 180-240
+                    sat = 80;
+                } else if (code >= 48 && code <= 57) {
+                    // Numbers 0-9: purples
+                    hue = 270 + ((code - 48) / 10) * 30; // 270-300
+                    sat = 75;
+                } else if (code === 32) {
+                    // Space: light gray
+                    return { r: 200, g: 200, b: 200 };
+                } else {
+                    // Punctuation/symbols: yellows/greens
+                    hue = 60 + ((code - MIN_ASCII) / CHAR_COUNT) * 120; // 60-180
+                    sat = 60;
+                }
+
+                return hslToRgb(hue, sat, light);
+            }
+        },
+        frequency: {
+            name: 'Frequency Optimized',
+            description: 'Common characters get more distinct colors',
+            charToColor: function(char) {
+                // Common English characters get evenly spaced hues
+                const frequencyOrder = ' etaoinshrdlcumwfgypbvkjxqz0123456789ETAOINSHRDLCUMWFGYPBVKJXQZ.,!?;:\'"()-';
+                const code = char.charCodeAt(0);
+                const clampedCode = Math.max(MIN_ASCII, Math.min(MAX_ASCII, code));
+                const charStr = String.fromCharCode(clampedCode);
+
+                let idx = frequencyOrder.indexOf(charStr);
+                if (idx === -1) {
+                    // Fall back to position in ASCII range for unlisted chars
+                    idx = frequencyOrder.length + (clampedCode - MIN_ASCII);
+                }
+
+                const hue = (idx / (frequencyOrder.length + 20)) * 360;
+                return hslToRgb(hue, 75, 50);
+            }
+        }
+    };
 
     function hslToRgb(h, s, l) {
         s /= 100;
@@ -33,27 +117,42 @@ const ColorMap = (function() {
         };
     }
 
+    function setAlgorithm(name) {
+        if (algorithms[name]) {
+            currentAlgorithm = name;
+        }
+    }
+
+    function getAlgorithm() {
+        return currentAlgorithm;
+    }
+
+    function getAlgorithms() {
+        return Object.keys(algorithms).map(key => ({
+            id: key,
+            name: algorithms[key].name,
+            description: algorithms[key].description
+        }));
+    }
+
     function charToColor(char) {
-        const code = char.charCodeAt(0);
-        const clampedCode = Math.max(MIN_ASCII, Math.min(MAX_ASCII, code));
-
-        // HSL formula: Hue = ((ASCII-32)/94)*360
-        const hue = ((clampedCode - MIN_ASCII) / 94) * 360;
-
-        return hslToRgb(hue, SATURATION, LIGHTNESS);
+        return algorithms[currentAlgorithm].charToColor(char);
     }
 
     function buildReverseLookup() {
-        if (reverseLookup) return reverseLookup;
+        if (reverseLookups[currentAlgorithm]) {
+            return reverseLookups[currentAlgorithm];
+        }
 
-        reverseLookup = new Map();
+        const lookup = new Map();
         for (let code = MIN_ASCII; code <= MAX_ASCII; code++) {
             const char = String.fromCharCode(code);
             const color = charToColor(char);
             const key = `${color.r},${color.g},${color.b}`;
-            reverseLookup.set(key, char);
+            lookup.set(key, char);
         }
-        return reverseLookup;
+        reverseLookups[currentAlgorithm] = lookup;
+        return lookup;
     }
 
     function colorToChar(r, g, b) {
@@ -95,6 +194,9 @@ const ColorMap = (function() {
         charToColor,
         colorToChar,
         getColorLegend,
+        setAlgorithm,
+        getAlgorithm,
+        getAlgorithms,
         MIN_ASCII,
         MAX_ASCII,
         CHAR_COUNT
