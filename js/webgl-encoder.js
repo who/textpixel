@@ -30,9 +30,10 @@ const WebGLEncoder = (function() {
         uniform float u_textLength;      // Actual text length
 
         void main() {
-            // Calculate pixel index
+            // Calculate pixel index (flip Y since WebGL has origin at bottom-left)
             vec2 pixelCoord = floor(gl_FragCoord.xy);
-            float idx = pixelCoord.y * u_resolution.x + pixelCoord.x;
+            float flippedY = u_resolution.y - 1.0 - pixelCoord.y;
+            float idx = flippedY * u_resolution.x + pixelCoord.x;
 
             // Sample character code from data texture
             float dataWidth = ceil(sqrt(u_textLength));
