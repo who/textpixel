@@ -62,7 +62,7 @@ const ColorMap = (function() {
 
         // Exact match
         if (lookup.has(key)) {
-            return lookup.get(key);
+            return { char: lookup.get(key), exact: true };
         }
 
         // Nearest match for lossy formats (JPEG)
@@ -78,7 +78,7 @@ const ColorMap = (function() {
             }
         }
 
-        return bestChar;
+        return { char: bestChar, exact: false };
     }
 
     function getColorLegend() {

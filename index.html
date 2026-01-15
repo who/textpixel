@@ -36,6 +36,23 @@
                     <button id="download-btn" class="btn btn-secondary" disabled>Download PNG</button>
                 </div>
             </section>
+
+            <section class="decode-section">
+                <h2>Decode Image</h2>
+                <div class="decode-upload">
+                    <label class="file-upload">
+                        <input type="file" id="decode-file-input" accept="image/*">
+                        <span>Upload TextPixel Image</span>
+                    </label>
+                </div>
+                <div class="decode-preview">
+                    <canvas id="decode-canvas"></canvas>
+                </div>
+                <div class="decode-output">
+                    <textarea id="decode-output" readonly placeholder="Decoded text will appear here..."></textarea>
+                    <div class="decode-stats" id="decode-stats"></div>
+                </div>
+            </section>
         </main>
 
         <footer class="footer">
