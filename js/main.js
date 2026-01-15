@@ -73,7 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) {
             try {
                 stats.textContent = 'Parsing file...';
-                const text = await FileParser.parseFile(file);
+                const text = await FileParser.parseFile(file, (progress) => {
+                    if (progress.type === 'pdf') {
+                        stats.textContent = `Parsing PDF page ${progress.current} of ${progress.total}...`;
+                    } else if (progress.type === 'epub') {
+                        stats.textContent = `Extracting file ${progress.current} of ${progress.total}...`;
+                    }
+                });
                 textInput.value = text;
                 updateStats();
                 schedulePreview();

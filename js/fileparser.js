@@ -7,16 +7,16 @@ const FileParser = (function() {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    async function parseFile(file) {
+    async function parseFile(file, onProgress) {
         const extension = file.name.split('.').pop().toLowerCase();
 
         switch (extension) {
             case 'txt':
                 return parseTxt(file);
             case 'pdf':
-                return parsePdf(file);
+                return parsePdf(file, onProgress);
             case 'epub':
-                return parseEpub(file);
+                return parseEpub(file, onProgress);
             case 'docx':
                 return parseDocx(file);
             default:
@@ -33,7 +33,7 @@ const FileParser = (function() {
         });
     }
 
-    async function parsePdf(file) {
+    async function parsePdf(file, onProgress) {
         if (typeof pdfjsLib === 'undefined') {
             throw new Error('PDF.js library not loaded');
         }
@@ -41,8 +41,12 @@ const FileParser = (function() {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let text = '';
+        const totalPages = pdf.numPages;
 
-        for (let i = 1; i <= pdf.numPages; i++) {
+        for (let i = 1; i <= totalPages; i++) {
+            if (onProgress) {
+                onProgress({ current: i, total: totalPages, type: 'pdf' });
+            }
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
             const pageText = content.items.map(item => item.str).join(' ');
@@ -52,7 +56,7 @@ const FileParser = (function() {
         return text.trim();
     }
 
-    async function parseEpub(file) {
+    async function parseEpub(file, onProgress) {
         if (typeof JSZip === 'undefined') {
             throw new Error('JSZip library not loaded');
         }
@@ -71,8 +75,13 @@ const FileParser = (function() {
 
         // Sort by path to maintain chapter order
         contentFiles.sort();
+        const totalFiles = contentFiles.length;
 
-        for (const path of contentFiles) {
+        for (let i = 0; i < totalFiles; i++) {
+            if (onProgress) {
+                onProgress({ current: i + 1, total: totalFiles, type: 'epub' });
+            }
+            const path = contentFiles[i];
             const content = await zip.file(path).async('string');
             // Strip HTML tags and decode entities
             const stripped = stripHtml(content);
